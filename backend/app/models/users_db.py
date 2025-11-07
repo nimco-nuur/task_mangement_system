@@ -3,6 +3,8 @@ import mysql.connector
 
 
 from app.dbconnection import MyConfiguration,Database
+from  flask_bcrypt  import Bcrypt
+bycript = Bcrypt()
 
 
 class Users:
@@ -31,6 +33,55 @@ class Users:
         except Exception as e:
             print(f"error while registering user {e}")
             return False
+    def check_user_email(self,user_email):
+        sql = "select id, user_name,user_email,user_password,user_gender,user_role from users WHERE user_email = %s"
+        try:
+            self.cursor.execute(sql,(user_email,))
+            found_email = self.cursor.fetchone()
+            print(f"value of check email {found_email}")
+            if found_email:
+                return True
+            else:
+                return False
+        except Exception as e:
+            return False,e        
+    def login(self,user_email,user_password):
+        sql = "select id, user_name,user_email,user_password,user_gender,user_role  from users  where user_email = %s"
+        try:
+            self.cursor.execute(sql,(user_email,))
+            get_user = self.cursor.fetchone()
+            hashed_password = get_user["user_password"]
+            if not get_user:
+                return False ,'user not fund '
+            
+            if bycript and bycript.check_password_hash(hashed_password,user_password):
+                print(f"user_password : {user_password}  hashad_password:{hashed_password}")
+                print("successfully login")
+                del get_user['user_password']
+                return True,get_user
+
+        except Exception as e:
+            return False , 'error while login'
+        
+
+
+    def profile_update(self,user_name,user_email,user_password,user_gender,id):
+        sql = """
+
+          UPDATE  users set user_name = %s , user_email = %s ,user_password = %s , user_gender = %s
+          WHERE id = %s
+
+          """
+        
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute(sql,(user_name,user_email,user_password,user_gender,id))
+            self.connection.commit()
+            print("Updating user:")
+            return True
+        except Exception as e:
+            return False
+
 
 def check_user_connection():
     """
